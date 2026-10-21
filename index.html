@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a0a0e" />
+  <meta name="description" content="Um pedido especial, no volume máximo, para Lara." />
+  <title>Lara, namora comigo? | Metal Edition</title>
+
+  <!--
+  ================================================================
+  CONFIGURAÇÃO PARA SALVAR RESPOSTAS — SUPABASE
+  ================================================================
+  1. Crie um projeto grátis em https://supabase.com/.
+  2. No projeto, abra SQL Editor > New query, cole e execute:
+
+     create table if not exists public.lara_respostas (
+       id uuid primary key default gen_random_uuid(),
+       resposta text not null check (resposta in ('Sim', 'Ainda não')),
+       criada_em timestamptz not null default now()
+     );
+
+     alter table public.lara_respostas enable row level security;
+     revoke all on table public.lara_respostas from anon, authenticated;
+     grant insert (resposta) on table public.lara_respostas to anon;
+
+     drop policy if exists "Receber respostas da Lara" on public.lara_respostas;
+     create policy "Receber respostas da Lara"
+       on public.lara_respostas
+       for insert to anon
+       with check (resposta in ('Sim', 'Ainda não'));
+
+  3. Em Project Settings > API (ou Connect > API Keys), copie:
+     - URL do projeto
+     - Chave pública / publishable key / anon key
+  4. Cole os valores no bloco CONFIGURAÇÃO do JavaScript ao fim.
+  5. Publique apenas este index.html no GitHub Pages.
+  6. Consulte as respostas em Supabase > Table Editor > lara_respostas.
+
+  IMPORTANTE: nunca use service_role/secret key no HTML público.
+  O banco aceita inserções anônimas, mas não dá permissão para
+  os visitantes lerem, editarem ou apagarem as respostas.
+  ================================================================
+  -->
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --black: #08080b;
+      --coal: #101014;
+      --surface: #18181e;
+      --white: #f4f0ea;
+      --muted: #ada5a8;
+      --red: #e52b42;
+      --blood: #8a1526;
+      --line: rgba(246, 238, 234, .16);
+      --chrome: #dad6d5;
+      --font-display: Impact, Haettenschweiler, "Arial Narrow Bold", "Arial Black", sans-serif;
+      --font-body: "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { min-height: 100%; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--white);
+      background:
+        radial-gradient(ellipse at 50% -22%, rgba(207, 30, 52, .30), transparent 56%),
+        radial-gradient(ellipse at 5% 75%, rgba(116, 18, 36, .15), transparent 36%),
+        radial-gradient(ellipse at 93% 90%, rgba(116, 18, 36, .12), transparent 33%),
+        #08080b;
+      font-family: var(--font-body);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: .36;
+      background-image:
+        repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.015) 3px 4px),
+        linear-gradient(125deg, transparent 46%, rgba(200,38,60,.075) 49%, transparent 52%);
+    }
+    ::selection { background: var(--red); color: #fff; }
+    button { font: inherit; }
+    button:focus-visible { outline: 3px solid #fff; outline-offset: 5px; }
+
+    .page {
+      width: min(100% - 48px, 1160px);
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 26px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand, .edition {
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-symbol { color: var(--red); font-size: 24px; line-height: .7; }
+    .edition { color: #8c8388; }
+
+    .stage {
+      flex: 1;
+      padding: 54px 0 50px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      justify-content: center;
+      position: relative;
+    }
+    .stage::before, .stage::after {
+      content: "";
+      position: absolute;
+      width: 190px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(229,43,66,.45), transparent);
+      transform: rotate(-45deg);
+      pointer-events: none;
+    }
+    .stage::before { left: -100px; top: 23%; }
+    .stage::after { right: -100px; bottom: 21%; }
+
+    .emblem-wrap {
+      position: relative;
+      width: 164px;
+      height: 124px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 11px;
+    }
+    .emblem-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 12px 16px 2px;
+      background: var(--red);
+      filter: blur(42px);
+      opacity: .24;
+      border-radius: 50%;
+    }
+    .emblem { width: 164px; height: 120px; overflow: visible; position: relative; filter: drop-shadow(0 0 17px rgba(229,43,66,.35)); }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      color: #cfbfc2;
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .32em;
+      margin: 8px 0 19px;
+    }
+    .eyebrow::before, .eyebrow::after { content: ""; width: 34px; height: 1px; background: var(--red); opacity: .75; }
+
+    h1 {
+      margin: 0;
+      width: 100%;
+      font-family: var(--font-display);
+      font-weight: 900;
+      letter-spacing: .018em;
+      line-height: .94;
+      text-transform: uppercase;
+      text-wrap: balance;
+    }
+    h1 span { display: block; }
+    .name {
+      color: var(--red);
+      font-size: clamp(94px, 13.3vw, 184px);
+      line-height: .92;
+      letter-spacing: .07em;
+      text-shadow: 0 5px 0 #520b18, 0 13px 36px rgba(229,43,66,.20);
+      padding-left: .07em;
+    }
+    .question {
+      font-size: clamp(35px, 6.6vw, 84px);
+      color: #f1edeb;
+      letter-spacing: .018em;
+      text-shadow: 0 3px 0 #555057, 0 8px 24px rgba(0,0,0,.5);
+    }
+    .final-line {
+      font-size: clamp(41px, 7.4vw, 98px);
+      margin-top: 4px;
+      color: #dedbdd;
+      background: linear-gradient(180deg, #fff 11%, #d3cbca 44%, #8e898d 51%, #ece6e3 67%, #c8babb 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 5px 0 rgba(0,0,0,.65));
+    }
+
+    .rule {
+      display: flex;
+      align-items: center;
+      width: min(380px, 85%);
+      gap: 14px;
+      margin: 30px 0 23px;
+      color: var(--red);
+      font-size: 22px;
+    }
+    .rule::before, .rule::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg, transparent, rgba(229,43,66,.7)); }
+    .rule::after { transform: rotate(180deg); }
+    .subtitle {
+      max-width: 610px;
+      margin: 0 auto;
+      color: var(--muted);
+      font-size: clamp(14px, 1.65vw, 18px);
+      line-height: 1.65;
+    }
+    .subtitle strong { color: #fff; }
+    .actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 31px;
+    }
+    .choice {
+      display: inline-flex;
+      gap: 13px;
+      justify-content: center;
+      align-items: center;
+      min-width: 216px;
+      min-height: 66px;
+      padding: 16px 25px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: var(--font-display);
+      font-size: 23px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      transform: skew(-5deg);
+      transition: transform .18s ease, background .18s ease, box-shadow .18s ease, border-color .18s ease;
+      position: relative;
+      isolation: isolate;
+    }
+    .choice > span { transform: skew(5deg); }
+    .choice:hover:not(:disabled) { transform: skew(-5deg) translateY(-4px); }
+    .choice:active:not(:disabled) { transform: skew(-5deg) translateY(1px); }
+    .choice:disabled { cursor: wait; opacity: .65; }
+    .choice.yes {
+      border: 1px solid #ff4f64;
+      color: white;
+      background: linear-gradient(135deg, #f13950 0%, #b20f2b 100%);
+      box-shadow: 0 7px 0 #641222, 0 14px 32px rgba(211,32,57,.24);
+    }
+    .choice.yes:hover:not(:disabled) { box-shadow: 0 10px 0 #641222, 0 20px 36px rgba(211,32,57,.33); }
+    .choice.not-yet {
+      border: 1px solid #62545b;
+      color: #e8e2e3;
+      background: linear-gradient(140deg, #242127, #141317);
+      box-shadow: 0 7px 0 #0a090d;
+    }
+    .choice.not-yet:hover:not(:disabled) { background: #30242c; border-color: #98858d; }
+    .choice svg { width: 20px; height: 20px; }
+    .disclaimer {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      color: #847d84;
+      margin-top: 31px;
+      line-height: 1.8;
+    }
+    .disclaimer span { color: var(--red); }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      padding: 21px 0 23px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      justify-content: space-between;
+      color: #847c82;
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: bold;
+      letter-spacing: .21em;
+    }
+    .footer b { color: var(--red); font-weight: inherit; }
+
+    .result-cover {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      background: rgba(6, 6, 9, .9);
+      backdrop-filter: blur(15px);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+    [hidden] { display: none !important; }
+    .result-card {
+      position: relative;
+      overflow: hidden;
+      width: min(100%, 570px);
+      background: radial-gradient(circle at top, rgba(193,30,54,.19), transparent 66%), #151317;
+      border: 1px solid rgba(240,65,87,.55);
+      padding: 58px clamp(22px, 6vw, 56px) 40px;
+      text-align: center;
+      box-shadow: 0 30px 120px rgba(0,0,0,.65), 0 0 60px rgba(197, 30, 48, .15), inset 0 0 0 6px #151317, inset 0 0 0 7px rgba(255,255,255,.09);
+    }
+    .result-card::before, .result-card::after {
+      content: "+";
+      position: absolute;
+      font-size: 26px;
+      color: #ae4051;
+      font-family: monospace;
+      top: 11px;
+    }
+    .result-card::before { left: 18px; }
+    .result-card::after { right: 18px; }
+    .result-icon { font-size: 54px; line-height: 1; margin-bottom: 22px; filter: drop-shadow(0 0 12px rgba(229,43,66,.2)); }
+    .result-kicker {
+      text-transform: uppercase;
+      color: var(--red);
+      font-weight: 800;
+      font-size: 11px;
+      letter-spacing: .26em;
+      margin: 0 0 12px;
+    }
+    .result-title {
+      font-family: var(--font-display);
+      line-height: 1.05;
+      text-transform: uppercase;
+      font-size: clamp(36px, 7vw, 64px);
+      letter-spacing: .025em;
+      margin: 0 0 20px;
+    }
+    .result-description { color: #c9bfc3; line-height: 1.75; font-size: 16px; margin: 0 0 24px; }
+    .save-status { font-size: 12px; line-height: 1.6; color: #ada6aa; margin: 0 auto 23px; max-width: 380px; }
+    .save-status.success { color: #a9dcc4; }
+    .save-status.error { color: #ffc39e; }
+    .back-button, .retry-button {
+      cursor: pointer;
+      border: 1px solid rgba(241, 235, 236, .35);
+      color: white;
+      background: transparent;
+      padding: 12px 18px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: 12px;
+      font-weight: 800;
+      transition: background .15s ease;
+    }
+    .back-button:hover, .retry-button:hover { background: rgba(255,255,255,.1); }
+    .retry-button { border-color: var(--red); margin-right: 9px; }
+    .retry-button:disabled { opacity: .6; cursor: wait; }
+
+    .sparks { position: fixed; inset: 0; pointer-events: none; z-index: 11; overflow: hidden; }
+    .spark {
+      display: block;
+      position: absolute;
+      top: -12%;
+      left: var(--x);
+      color: var(--c);
+      font-size: var(--s);
+      animation: shower var(--duration) linear var(--delay) forwards;
+      opacity: 0;
+      text-shadow: 0 0 18px currentColor;
+    }
+    @keyframes shower {
+      0% { transform: translate3d(0, -30px, 0) rotate(0); opacity: 0; }
+      8% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { transform: translate3d(var(--shift), 115vh, 0) rotate(650deg); opacity: 0; }
+    }
+    @media (max-width: 680px) {
+      .page { width: min(100% - 28px, 580px); }
+      .topbar { padding: 19px 0; }
+      .brand, .edition { font-size: 9px; letter-spacing: .13em; }
+      .stage { padding: 35px 0 47px; }
+      .stage::before, .stage::after { display: none; }
+      .emblem-wrap { transform: scale(.83); margin-bottom: -3px; }
+      .eyebrow { font-size: 9px; letter-spacing: .17em; gap: 9px; margin: 4px 0 23px; }
+      .eyebrow::before, .eyebrow::after { width: 19px; }
+      .name { font-size: clamp(82px, 24vw, 134px); }
+      .question { font-size: clamp(34px, 9.8vw, 61px); line-height: 1.02; }
+      .final-line { font-size: clamp(42px, 12.1vw, 72px); line-height: .98; }
+      .rule { margin: 26px 0 18px; }
+      .actions { width: 100%; gap: 12px; margin-top: 27px; }
+      .choice { min-width: 0; width: min(100%, 330px); min-height: 61px; }
+      .disclaimer { max-width: 260px; margin: 23px auto 0; }
+      .footer { line-height: 1.8; font-size: 9px; letter-spacing: .1em; }
+    }
+    @media (max-width: 360px) {
+      .name { font-size: 74px; }
+      .question { font-size: 32px; }
+      .final-line { font-size: 40px; }
+      .edition { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand"><span class="brand-symbol" aria-hidden="true">ϟ</span> LOVE AT FULL VOLUME</div>
+      <div class="edition">SPECIAL EDITION <span aria-hidden="true">//</span> FOR LARA</div>
+    </header>
+
+    <main class="stage" id="pedido">
+      <div class="emblem-wrap" aria-hidden="true">
+        <svg class="emblem" viewBox="0 0 180 132" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="metalRed" x1="0" y1="0" x2="1" y2="1">
+              <stop stop-color="#ff6470" />
+              <stop offset=".53" stop-color="#d21a36" />
+              <stop offset="1" stop-color="#6b1324" />
+            </linearGradient>
+          </defs>
+          <path d="M44 31 13 17l19 32-19 8 34 7" fill="none" stroke="#ac233a" stroke-width="5" stroke-linecap="square" />
+          <path d="m137 31 30-14-19 32 19 8-34 7" fill="none" stroke="#ac233a" stroke-width="5" stroke-linecap="square" />
+          <path d="M90 111C75 94 43 77 43 52c0-14 9-24 23-24 10 0 19 6 24 16 5-10 14-16 24-16 14 0 23 10 23 24 0 25-32 42-47 59Z" fill="url(#metalRed)" stroke="#f97885" stroke-width="2.5" />
+          <path d="m99 35-17 33h16L83 99l5-26H73l18-38Z" fill="#11090d" stroke="#ff9da3" stroke-width="1.2" />
+          <path d="M71 15 78 6l9 19M109 15l-7-9-9 19" fill="none" stroke="#bc273d" stroke-width="4" />
+          <path d="M22 91 49 84m109 7-27-7" stroke="#8b2337" stroke-width="3" />
+        </svg>
+      </div>
+
+      <p class="eyebrow">UM PEDIDO EM ALTO VOLUME</p>
+      <h1 aria-label="Lara deixa de besteira e namora comigo">
+        <span class="name">Lara</span>
+        <span class="question">deixa de besteira</span>
+        <span class="final-line">e namora comigo</span>
+      </h1>
+      <div class="rule" aria-hidden="true">✦</div>
+      <p class="subtitle">O som pode ser pesado, mas o que eu sinto é de verdade.<br />
+        <strong>Topa dividir comigo todos os próximos shows da vida?</strong>
+      </p>
+
+      <div class="actions" aria-label="Escolha sua resposta">
+        <button type="button" class="choice yes" id="sim">
+          <span>Sim</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10V5a2 2 0 0 1 4 0v4-6a2 2 0 0 1 4 0v6-4a2 2 0 0 1 4 0v8l1-1a2.1 2.1 0 0 1 3 3l-6 7H9L3 13a2 2 0 0 1 4-3Z" transform="translate(-2 -1) scale(.95)"/></svg>
+        </button>
+        <button type="button" class="choice not-yet" id="ainda-nao">
+          <span>Ainda não</span><span aria-hidden="true">♡</span>
+        </button>
+      </div>
+      <p class="disclaimer">SEM PRESSÃO, SÓ CORAGEM <span aria-hidden="true">♥</span> SUA RESPOSTA SERÁ RESPEITADA</p>
+    </main>
+
+    <footer class="footer">
+      <span>FEITO COM <b>♥</b> E DISTORÇÃO</span>
+      <span>ONE GIRL <b>✦</b> ONE QUESTION</span>
+    </footer>
+  </div>
+
+  <div class="result-cover" id="resultado" hidden>
+    <section class="result-card" role="dialog" aria-modal="true" aria-labelledby="resultado-titulo" aria-describedby="resultado-descricao">
+      <div class="result-icon" id="resultado-icone" aria-hidden="true">❤️‍🔥</div>
+      <p class="result-kicker" id="resultado-kicker">VEREDITO RECEBIDO</p>
+      <h2 class="result-title" id="resultado-titulo" tabindex="-1"></h2>
+      <p class="result-description" id="resultado-descricao"></p>
+      <p class="save-status" id="status-salvamento" role="status" aria-live="polite"></p>
+      <button type="button" class="retry-button" id="tentar-novamente" hidden>Tentar salvar</button>
+      <button type="button" class="back-button" id="voltar">Voltar ao pedido</button>
+    </section>
+  </div>
+  <div class="sparks" id="sparks" aria-hidden="true"></div>
+
+  <script>
+    "use strict";
+
+    // ============================================================
+    // CONFIGURAÇÃO — ALTERE SÓ ESTAS DUAS LINHAS PARA SALVAR ONLINE
+    // Use a chave pública (anon/publishable), NUNCA uma secret/service_role.
+    // ============================================================
+    const SUPABASE_URL = "COLE_AQUI_A_URL_DO_PROJETO";
+    const SUPABASE_PUBLIC_KEY = "COLE_AQUI_A_CHAVE_PUBLICA";
+    // ============================================================
+
+    const simButton = document.getElementById("sim");
+    const naoButton = document.getElementById("ainda-nao");
+    const resultCover = document.getElementById("resultado");
+    const resultTitle = document.getElementById("resultado-titulo");
+    const resultDescription = document.getElementById("resultado-descricao");
+    const resultIcon = document.getElementById("resultado-icone");
+    const resultKicker = document.getElementById("resultado-kicker");
+    const saveStatus = document.getElementById("status-salvamento");
+    const retryButton = document.getElementById("tentar-novamente");
+    const backButton = document.getElementById("voltar");
+    const sparksContainer = document.getElementById("sparks");
+
+    let chosenAnswer = null;
+    let lastClickedButton = null;
+    let saving = false;
+    const isConfigured =
+      /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(SUPABASE_URL.trim()) &&
+      SUPABASE_PUBLIC_KEY.trim().length > 20 &&
+      !SUPABASE_PUBLIC_KEY.includes("COLE_AQUI");
+
+    async function saveAnswer(answer) {
+      if (!isConfigured) {
+        throw new Error("CONFIGURACAO_PENDENTE");
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_PUBLIC_KEY,
+        "Prefer": "return=minimal"
+      };
+      // Chaves anon antigas são JWT; chaves publishable novas não são.
+      if (SUPABASE_PUBLIC_KEY.startsWith("eyJ")) {
+        headers.Authorization = `Bearer ${SUPABASE_PUBLIC_KEY}`;
+      }
+
+      const response = await fetch(
+        `${SUPABASE_URL.replace(/\/+$/, "")}/rest/v1/lara_respostas`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ resposta: answer })
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`Falha ao salvar (HTTP ${response.status})`);
+      }
+    }
+
+    function showSparks() {
+      sparksContainer.replaceChildren();
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const symbols = ["♥", "✦", "ϟ", "★", "♥"];
+      for (let i = 0; i < 35; i++) {
+        const spark = document.createElement("span");
+        spark.className = "spark";
+        spark.textContent = symbols[i % symbols.length];
+        spark.style.setProperty("--x", `${Math.random() * 100}%`);
+        spark.style.setProperty("--shift", `${Math.random() * 240 - 120}px`);
+        spark.style.setProperty("--s", `${13 + Math.random() * 19}px`);
+        spark.style.setProperty("--duration", `${2.7 + Math.random() * 2.7}s`);
+        spark.style.setProperty("--delay", `${Math.random() * 1.5}s`);
+        spark.style.setProperty("--c", i % 3 === 0 ? "#faf0eb" : i % 3 === 1 ? "#ed3c55" : "#b35b6b");
+        sparksContainer.appendChild(spark);
+      }
+    }
+
+    function setStatus(message, kind) {
+      saveStatus.textContent = message;
+      saveStatus.className = `save-status ${kind || ""}`;
+    }
+
+    function showResult(answer) {
+      const yes = answer === "Sim";
+      resultIcon.textContent = yes ? "❤️‍🔥" : "🖤";
+      resultKicker.textContent = yes ? "O MELHOR BIS DA HISTÓRIA" : "SEU TEMPO, SEU RITMO";
+      resultTitle.textContent = yes ? "VOCÊ DISSE SIM!" : "TUDO BEM, LARA.";
+      resultDescription.textContent = yes
+        ? "Agora é oficial: eu quero você do meu lado em todos os shows, nos dias bons e nos dias difíceis. Você é meu refrão favorito. 🤘"
+        : "Sem pressão e sem drama. Eu respeito seu tempo e sua resposta, de coração. O carinho continua o mesmo. 🤘";
+      setStatus("Registrando resposta...", "");
+      retryButton.hidden = true;
+      resultCover.hidden = false;
+      document.body.style.overflow = "hidden";
+      resultTitle.focus();
+      if (yes) showSparks();
+    }
+
+    async function persistChosenAnswer() {
+      if (saving || !chosenAnswer) return;
+      saving = true;
+      simButton.disabled = true;
+      naoButton.disabled = true;
+      retryButton.disabled = true;
+      setStatus("Registrando resposta...", "");
+
+      try {
+        await saveAnswer(chosenAnswer);
+        setStatus("✓ Resposta salva com sucesso. Rock on!", "success");
+        retryButton.hidden = true;
+      } catch (error) {
+        if (error.message === "CONFIGURACAO_PENDENTE") {
+          setStatus("Este site ainda está em modo demonstração. A resposta NÃO foi salva. É preciso configurar o Supabase antes de enviar o link.", "error");
+          retryButton.hidden = true;
+        } else {
+          console.error("Erro ao registrar a resposta:", error);
+          setStatus("Não foi possível salvar a resposta agora. Verifique a conexão e tente novamente.", "error");
+          retryButton.hidden = false;
+        }
+      } finally {
+        saving = false;
+        simButton.disabled = false;
+        naoButton.disabled = false;
+        retryButton.disabled = false;
+      }
+    }
+
+    function answer(value, button) {
+      if (saving) return;
+      chosenAnswer = value;
+      lastClickedButton = button;
+      showResult(value);
+      void persistChosenAnswer();
+    }
+
+    simButton.addEventListener("click", () => answer("Sim", simButton));
+    naoButton.addEventListener("click", () => answer("Ainda não", naoButton));
+    retryButton.addEventListener("click", () => void persistChosenAnswer());
+
+    function closeResult() {
+      if (saving) return;
+      resultCover.hidden = true;
+      document.body.style.overflow = "";
+      sparksContainer.replaceChildren();
+      if (lastClickedButton) lastClickedButton.focus();
+    }
+    backButton.addEventListener("click", closeResult);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !resultCover.hidden) closeResult();
+      // Mantém o foco dentro da resposta enquanto ela estiver aberta.
+      if (event.key === "Tab" && !resultCover.hidden) {
+        const focusable = [...resultCover.querySelectorAll("button:not([hidden]):not(:disabled)")];
+        if (!focusable.length) { event.preventDefault(); return; }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === resultTitle)) {
+          event.preventDefault(); last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault(); first.focus();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
